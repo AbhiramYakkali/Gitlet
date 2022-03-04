@@ -84,30 +84,32 @@ public class Repository {
 
     public void removeFile(String file) {
         if(!join(CWD, file).exists()) {
-            List<String> blobs = getCurrentCommit().getBlobs();
-            for(String code : blobs) {
-                if(getBlobName(code).equals(file)) {
-                    writeContents(join(REMOVALS, code), file);
-                    System.exit(0);
-                }
+            HashMap<String, String> file_codes = getCurrentCommit().getHashMap();
+            String code = file_codes.get(file);
+
+            if(code == null) {
+                System.out.println("No reason to remove the file.");
+                System.exit(0);
+            } else {
+                writeContents(join(REMOVALS, code));
+                System.exit(0);
             }
-            System.out.println("No reason to remove the file.");
-            System.exit(0);
         }
 
         String code = getSHACodeOfFile(file);
         if(join(ADDITIONS, code).exists()) {
             removeBlob(code);
             join(ADDITIONS, code).delete();
+            System.exit(0);
+        }
+
+        List<String> blobs = getCurrentCommit().getBlobs();
+        if(blobs != null && blobs.contains(code)) {
+            writeContents(join(REMOVALS, code));
+            restrictedDelete(join(CWD, file));
         } else {
-            List<String> blobs = getCurrentCommit().getBlobs();
-            if(blobs != null && blobs.contains(code)) {
-                writeContents(join(REMOVALS, code));
-                restrictedDelete(join(CWD, file));
-            } else {
-                System.out.println("No reason to remove the file.");
-                System.exit(0);
-            }
+            System.out.println("No reason to remove the file.");
+            System.exit(0);
         }
     }
 
@@ -373,8 +375,8 @@ public class Repository {
 
         Commit currCommit = getCurrentCommit(), mergeCommit = getCommit(mergeCommitCode), splitPoint = getCommit(splitCommitCode);
 
-        HashMap<String, String> currMap = currCommit.createHashMap(), mergeMap = mergeCommit.createHashMap(),
-                splitMap = splitPoint.createHashMap();
+        HashMap<String, String> currMap = currCommit.getHashMap(), mergeMap = mergeCommit.getHashMap(),
+                splitMap = splitPoint.getHashMap();
 
         List<String> currNames = currCommit.getFileNames(), mergeNames = mergeCommit.getFileNames(),
                 splitNames = splitPoint.getFileNames();
@@ -386,12 +388,6 @@ public class Repository {
             if (currCode == null) currCode = "";
             if (mergeCode == null) mergeCode = "";
 
-            if(!currCode.equals(splitCode) && !mergeCode.equals(splitCode) && !currCode.equals(mergeCode)) {
-                mergeConflict(currCode, mergeCode, name);
-                conflict = true;
-                continue;
-            }
-
             if(!mergeCode.equals(splitCode)) {
                 if(currCode.equals(splitCode)) {
                     if(mergeCode.equals("")) {
@@ -401,6 +397,9 @@ public class Repository {
                         checkoutFile(name, mergeCommitCode);
                         addToStagingArea(name);
                     }
+                } else if(!currCode.equals(mergeCode)) {
+                    mergeConflict(currCode, mergeCode, name);
+                    conflict = true;
                 }
             }
 

@@ -16,6 +16,8 @@ public class Commit implements Serializable {
     private final Date date;
     /** List containing ids of blobs tracked by this commit */
     private final ArrayList<String> blobs;
+    /** HashMap mapping filenames to blob codes */
+    private final HashMap<String, String> file_codes;
 
     public Commit(String message, String parent1, String parent2, ArrayList<String> blobs) {
         this.message = message;
@@ -27,6 +29,7 @@ public class Commit implements Serializable {
         } else {
             date = new Date();
         }
+        file_codes = createHashMap();
     }
 
     //Commits this commit: adds this commit to the commits directory
@@ -52,7 +55,7 @@ public class Commit implements Serializable {
     }
 
     //Returns a HashMap mapping blob codes to file names and file names to blob codes
-    public HashMap<String, String> createHashMap() {
+    private HashMap<String, String> createHashMap() {
         HashMap<String, String> map = new HashMap<>();
         if(blobs == null) return map;
 
@@ -64,12 +67,9 @@ public class Commit implements Serializable {
     }
 
     public List<String> getFileNames() {
-        List<String> names = new ArrayList<>();
-        if(blobs == null) return names;
-
-        for(String blob : blobs) {
-            names.add(Repository.getBlobName(blob));
-        }
-        return names;
+        return new ArrayList<>(file_codes.keySet());
+    }
+    public HashMap<String, String> getHashMap() {
+        return file_codes;
     }
 }
